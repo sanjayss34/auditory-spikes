@@ -1,18 +1,17 @@
 function [h0 J] = estimate_ising()
     load('neuron_trains.mat');
     neuron_trains = cell2mat(neuron_trains);
-    neuron_trains = neuron_trains*2-1;
     [N T] = size(neuron_trains);
     h0 = unifrnd(0, 1, 1, N);
     J = unifrnd(0, 1, N, N);
     maxdiff = 1;
     eta = 1;
-    alpha = 0.5;
+    alpha = 0;
     prev_change_h0 = zeros(1, N);
     prev_change_J = zeros(N, N);
     itercount = 1;
-    while maxdiff > 0.01
-        eta = eta/itercount;
+    while itercount < 50
+        % eta = eta/itercount;
         disp([itercount maxdiff]);
         itercount = itercount+1;
         maxdiff = 0;
