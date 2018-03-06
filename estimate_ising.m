@@ -10,12 +10,12 @@ function [h0 J] = estimate_ising()
     prev_change_h0 = zeros(1, N);
     prev_change_J = zeros(N, N);
     itercount = 1;
-    while itercount < 50
-        % eta = eta/itercount;
+    while maxdiff > 0.01
+        eta = eta/sqrt(itercount);
         disp([itercount maxdiff]);
         itercount = itercount+1;
         maxdiff = 0;
-        sample_size = 100;
+        sample_size = 500;
         samples = sample_ising(sample_size, h0, J);
         for i=1:N
             mean_sigma_i = mean(samples(:,i));
