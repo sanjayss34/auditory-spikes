@@ -11,7 +11,7 @@ function [h0 J] = estimate_ising()
     prev_change_J = zeros(N, N);
     itercount = 1;
     while maxdiff > 0.01
-        eta = eta/sqrt(itercount);
+        eta = eta/(itercount^0.2);
         disp([itercount maxdiff]);
         itercount = itercount+1;
         maxdiff = 0;
