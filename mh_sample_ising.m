@@ -4,7 +4,7 @@ function [samples] = mh_sample_ising(beta, m, h0, J, iters, sigm0)
     for i = 1:m
         % If sigma is not specified, assume all neurons are +1
         if ~exist('sigm0', 'var')
-            sigm0 = ones(1,N);
+            sigm0 = unifrnd(-1,1,1,N);
         end
         sigm = sigm0;
         selected_neurons = randi([1 N], 1, iters);
