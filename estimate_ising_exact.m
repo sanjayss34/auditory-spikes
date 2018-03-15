@@ -1,4 +1,4 @@
-function [h0 J] = estimate_ising(iters)
+function [h0 J] = estimate_ising_exact(iters)
     load 'neuron_trains.mat' neuron_trains;
     neuron_trains = cell2mat(neuron_trains);
     [N T] = size(neuron_trains);
