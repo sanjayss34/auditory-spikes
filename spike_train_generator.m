@@ -1,4 +1,5 @@
 function [] = spike_train_generator(trial_length, bin_length)
+% Trial and bin lengths are measured in ms
 
 % Create spike trains for all 16 x 464 trials
 spike_train_processing(trial_length, bin_length);
@@ -11,5 +12,8 @@ concatenate_trains();
 
 % Concatenate spike trains to get 1 train for every neuron
 create_neuron_trains();
+
+% 1 train for every neuron, creates a different file for each TNR intensity
+intensity_trains();
 
 end
