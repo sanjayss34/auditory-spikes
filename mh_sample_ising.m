@@ -30,5 +30,5 @@ function [sigm, states] = mh_sample_ising(beta, m, h0, J, iters, sigm0)
         sigm(i,:) = sigm;
     end
     
-    states = ones(m,1)/m;
+    states = ones(1,m)/m;
 end
