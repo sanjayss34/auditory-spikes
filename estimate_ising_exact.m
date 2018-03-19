@@ -29,12 +29,12 @@ function [h0 J] = estimate_ising_exact(iters)
         % Sample Ising Estimations
         %samples = sample_ising(sample_size, h0, J);
         [sigm, states] = sample_ising_exact(h0, J);
-        weighted_states = sigm.*states;
+        weighted_states = sigm.*transpose(states);
         toc
         
         tic;
         % Update h0 
-        mean_sigma = mean(weighted_states);
+        mean_sigma = sum(weighted_states);
         diff = eta*(mean_experiment-mean_sigma) + alpha*prev_change_h0;
         prev_change_h0 = diff;
         h0 = h0 + diff;
@@ -43,7 +43,7 @@ function [h0 J] = estimate_ising_exact(iters)
         
         tic;
         % Update Jij
-        mean_product = transpose(states)*weighted_states;
+        mean_product = transpose(sigm)*weighted_states;
         diff = eta*(mean_experiment_product-mean_product)+alpha*prev_change_J;
         diff(logical(eye(size(diff)))) = 0;
         maxdiff = max(max(max(maxdiff, abs(diff))));
@@ -73,8 +73,8 @@ function [h0 J] = estimate_ising_exact(iters)
     k = 1;
     for i = 1:N
         for j = i+1:N
-            meps(k) = mean_experiment_product(i,j);
-            mps(k) = mean_product(i,j);
+            meps(k) = mean_experiment_product(i,j) - mean_experiment(i)*mean_experiment(j);
+            mps(k) = mean_product(i,j) - mean_sigma(i)*mean_sigma(j);
             k = k+1;
         end
     end

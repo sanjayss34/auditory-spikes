@@ -1,97 +1,130 @@
-function [h0 J] = estimate_ising(iters)
-    load 'neuron_trains.mat' neuron_trains;
+function [h0 J] = estimate_ising()
+    load('neuron_trains.mat');
     neuron_trains = cell2mat(neuron_trains);
     [N T] = size(neuron_trains);
-    h0 = unifrnd(-1, 1, 1, N);
-    J = unifrnd(-1, 1, N, N);
+    experimental_means = zeros(N, 1);
+    corr = zeros(N, N);
+    for i=1:N
+        experimental_means(i) = mean(neuron_trains(i,:));
+    end
+    load('sorted_trains.mat');
+    [N, K] = size(sorted_trains);
+    experimental_means_stim = zeros(N, K);
+    for j=1:K
+        for i=1:N
+            experimental_means_stim(i, j) = mean(cell2mat(sorted_trains(i, j)));
+        end
+    end
+    for i=1:N
+        for j=1:N
+            if i == j
+                corr(i, j) = 1;
+            else
+                corr(i, j) = mean(neuron_trains(i,:).*neuron_trains(j,:))-experimental_means(i)*experimental_means(j);
+            end
+        end
+    end
+    h0 = unifrnd(0, 1, 1, N);
+    J = unifrnd(0, 1, N, N);
     maxdiff = 1;
     eta = 0.1;
     alpha = 0;
     prev_change_h0 = zeros(1, N);
     prev_change_J = zeros(N, N);
-    itercount = 0;
-    
-    % Measure deviations from experiment
-    sigma_diff = zeros(1,iters);
-    corr_diff = zeros(1,iters);
-    
-    % Gradient Ascent
-    mean_experiment = transpose(mean(neuron_trains,2));
-    mean_experiment_product = neuron_trains*transpose(neuron_trains)/size(neuron_trains,2);
-    while itercount < iters
-        
-        tic;
-        % eta = eta/itercount;
-        itercount = itercount+1;
+    itercount = 1;
+    avg_mean_deviations = [];
+    avg_corr_deviations = [];
+    min_max_diff = maxdiff;
+    best_h0 = h0;
+    best_J = J;
+    while itercount < 51
+        if mod(itercount, 50) == 0
+            eta = eta/2;
+        end
         disp([itercount maxdiff]);
+        itercount = itercount+1;
         maxdiff = 0;
-        
-        % Sample Ising Estimations
+        prev_h0 = h0;
+        prev_J = J;
         sample_size = 500;
-        %samples = sample_ising(sample_size, h0, J);
-        samples = mh_sample_ising(1, sample_size, h0, J, 500);
-        toc
-        
-        tic;
-        % Update h0 
-        mean_sigma = mean(samples);
-        diff = eta*(mean_experiment-mean_sigma) + alpha*prev_change_h0;
-        prev_change_h0 = diff;
-        h0 = h0 + diff;
-        sigma_diff(itercount) = mean(abs(mean_experiment-mean_sigma));
-        toc
-        
-        tic;
-        % Update Jij
-        mean_product = transpose(samples)*samples/size(samples,1);
-        diff = eta*(mean_experiment_product-mean_product)+alpha*prev_change_J;
-        diff(logical(eye(size(diff)))) = 0;
-        maxdiff = max(max(max(maxdiff, abs(diff))));
-        prev_change_J = diff;
-        J = J + diff;
-        corr_diff(itercount) = sum(sum(abs(mean_experiment_product-mean_product)))/(N^2);
-        toc
-    end
-    
-    % Plot deviation from experiment over time
-    figure;
-    subplot(2,1,1);
-    plot(1:iters, sigma_diff);
-    title('Deviation of Mean Firing Rate');
-    subplot(2,1,2);
-    plot(1:iters, corr_diff);
-    xlabel('# of Iterations');
-    title('Deviation of Mean Correlation');
-    
-    % Mean responses
-    mrs = mean_sigma;
-    mers = mean_experiment;
-    % Mean products
-    num_entries = N*(N-1)/2;
-    meps = zeros(1,num_entries);
-    mps = zeros(1,num_entries);
-    k = 1;
-    for i = 1:N
-        for j = i+1:N
-            meps(k) = mean_experiment_product(i,j);
-            mps(k) = mean_product(i,j);
-            k = k+1;
+        % samples = mh_sample_ising(1, ones(1, N), sample_size, h0, J, 500);
+        samples = sample_ising(sample_size, h0, J);
+        avg_mean_deviation = 0;
+        for i=1:N
+            mean_sigma_i = mean(samples(:,i));
+            deviation = experimental_means(i)-mean_sigma_i;
+            diff = eta*(deviation)+alpha*prev_change_h0(i);
+            avg_mean_deviation = avg_mean_deviation+abs(deviation);
+            maxdiff = max(maxdiff, abs(deviation));
+            prev_change_h0(i) = diff;
+            h0(i) = h0(i)+diff;
+        end
+        avg_mean_deviation = avg_mean_deviation/N;
+        avg_corr_deviation = 0;
+        for i=1:N
+            for j=i+1:N
+                mean_experiment_product = corr(i, j)+experimental_means(i)*experimental_means(j);
+                mean_product = mean(samples(:,i).*samples(:,j));
+                deviation = mean_experiment_product-mean_product;
+                diff = eta*(deviation)+alpha*prev_change_J(i,j);
+                avg_corr_deviation = avg_corr_deviation+abs(deviation-(experimental_means(i)*experimental_means(j)-mean(samples(:,i))*mean(samples(:,j))));
+                maxdiff = max(maxdiff, abs(deviation));
+                prev_change_J(i, j) = diff;
+                prev_change_J(j, i) = diff;
+                J(i, j) = J(i,j)+diff;
+                J(j, i) = J(j,i)+diff;
+            end
+        end
+        avg_corr_deviation = avg_corr_deviation/(N*(N+1)/2);
+        avg_mean_deviations = [avg_mean_deviations avg_mean_deviation];
+        avg_corr_deviations = [avg_corr_deviations avg_corr_deviation];
+        if maxdiff < min_max_diff
+            min_max_diff = maxdiff;
+            best_h0 = prev_h0;
+            best_J = prev_J;
         end
     end
-    
-    % Plot predicted vs. empirical values
+    h0 = best_h0;
+    J = best_J;
+    subplot(2, 1, 1);
+    plot(5:numel(avg_mean_deviations), avg_mean_deviations(5:numel(avg_mean_deviations)));
+    xlabel('Iteration');
+    ylabel('Avg. deviation');
+    title('Avg. deviation of mean response vs. Iteration number');
+    subplot(2, 1, 2);
+    plot(1:numel(avg_corr_deviations), avg_corr_deviations);
+    xlabel('Iteration');
+    ylabel('Avg. deviation');
+    title('Avg. deviation of correlation vs. Iteration number');
     figure;
-    scatter(mers, mrs, 10, 'b', 'filled');
+    samples = sample_ising(sample_size, h0, J);
+    pred_means = [];
+    for i=1:N
+        pred_mean = mean(samples(:,i));
+        pred_means = [pred_means pred_mean];
+    end
+    scatter(experimental_means, pred_means);
     hold on;
-    xlabel('Mean Experimental Response');
-    ylabel('Mean Predicted Response');
-    lin = linspace(min(min(mers),min(mrs)),max(max(mers),max(mrs)),101);
-    plot(lin, lin, 'r')
+    plot(linspace(-1, 0, 101), linspace(-1, 0, 101));
+    xlabel('Experimental mean');
+    ylabel('Predicted mean');
+    title('Predicted vs. Experimental means');
+    hold off;
     figure;
-    scatter(meps, mps, 10, 'b', 'filled');
+    pred_corrs = [];
+    exp_corrs = [];
+    for i=1:N
+        for j=i+1:N
+            pred_corr = mean(samples(:,i).*samples(:,j))-mean(samples(:,i))*mean(samples(:,j));
+            pred_corrs = [pred_corrs pred_corr];
+            exp_corrs = [exp_corrs corr(i, j)];
+        end
+    end
+    scatter(exp_corrs, pred_corrs);
     hold on;
-    xlabel('Mean Experimental Correlation');
-    ylabel('Mean Predicted Correlation');
-    lin = linspace(min(min(meps),min(mps)),max(max(meps),max(mps)),101);
-    plot(lin, lin, 'r')
+    plot(linspace(-0.05, 0.15, 101), linspace(-0.05, 0.15, 101));
+    xlabel('Experimental correlation');
+    ylabel('Predicted correlation');
+    title('Predicted vs. Experimental correlations');
+    hold off;
 end
