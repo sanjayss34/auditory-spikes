@@ -1,6 +1,6 @@
-function [samples] = mh_sample_ising(beta, m, h0, J, iters, sigm0)  
+function [sigm, states] = mh_sample_ising(beta, m, h0, J, iters, sigm0)  
     N = numel(h0);
-    samples = zeros(m, N);    
+    sigm = zeros(m, N);    
     for i = 1:m
         % If sigma is not specified, assume all neurons are +1
         if ~exist('sigm0', 'var')
@@ -27,6 +27,8 @@ function [samples] = mh_sample_ising(beta, m, h0, J, iters, sigm0)
                 sigm = temp_sigm;
             end
         end
-        samples(i,:) = sigm;
+        sigm(i,:) = sigm;
     end
+    
+    states = ones(m,1)/m;
 end
