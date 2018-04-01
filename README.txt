@@ -10,3 +10,7 @@ create_neuron_trains.m further concatenates those spike trains across neurons, i
 intensity_trains concatenates the spike trains according to the stimulus. Thus, it returns S distinct arrays, one for each stimulus. These are used to create stimulus-dependent Ising models. Each array is of size Nx1, saved in a file named 'TNRx_trains.mat', where x is an integer representing the stimulus.
 
 All of these functions are called by spike_train_generator.m. Thus, to process and generate all of these spike train files, simply use spike_train_generator and specify (1) trial_length and (2) bin_length.
+
+After creating the neuron_trains.mat file using the steps above, run
+[h, J, train_indices] = estimate_ising(ITERS)
+to generate the parameters h and J for the Ising model and the indices of the data used to train the model. Here ITERS should be replaced with the number of iterations for which you want to run the algorithm. (1000 is a reasonable number.)
