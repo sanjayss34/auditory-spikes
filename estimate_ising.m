@@ -1,4 +1,4 @@
-function [h0 J train_logical] = estimate_ising_exact(iters)
+function [h0 J train_logical] = estimate_ising(iters)
     load 'neuron_trains.mat' neuron_trains;
     neuron_trains = cell2mat(neuron_trains);
     [N T] = size(neuron_trains);
@@ -33,26 +33,30 @@ function [h0 J train_logical] = estimate_ising_exact(iters)
     corr_diff = zeros(1,iters);
     
     % Gradient Ascent
-    sigm0 = 2*(randi(2,1,N)-1)-1;
+    sample_size = 10000;
+    sigm0 = zeros(sample_size, N);
+    for i=1:sample_size
+        sigm0(i,:) = 2*(randi(2, 1, N)-1)-1;
+    end
+    best_diff = 1;
+    best_h0 = h0;
+    best_J = J;
     while itercount < iters
         
-        % tic;
+        tic;
         % eta = eta/itercount;
         itercount = itercount+1;
         disp([itercount maxdiff]);
         maxdiff = 0;
         
         % Sample Ising Estimations
-        sample_size = 1000;
         % [sigm, states] = sample_ising(sample_size, h0, J);
         % [sigm, states] = sample_ising_exact(h0, J);
-        [sigm, states] = sw_sample_ising(h0, J, sample_size, sigm0);
+        % [sigm, states] = sw_sample_ising(h0, J, sample_size, sigm0);
         % if mod(itercount, 2) == 1
         
-        % [sigm, states] = mh_sample_ising(1, sample_size, h0, J, 10, sigm0);
-        size(sigm)
-        size(states)
-        sigm0 = sigm(sample_size,:);
+        [sigm, states] = mh_sample_ising(1, sample_size, h0, J, 10, sigm0);
+        sigm0 = sigm;
         % end
         % [sigm, states] = gibbs_sample_ising(sample_size, h0, J, 100);
         weighted_states = sigm.*repmat(transpose(states), 1, size(sigm, 2));
@@ -76,9 +80,17 @@ function [h0 J train_logical] = estimate_ising_exact(iters)
         prev_change_J = diff;
         J = J + diff;
         corr_diff(itercount) = sum(sum(abs(mean_experiment_product-mean_product)))/(N^2);
-        % toc
+        if maxdiff < best_diff
+            best_diff = maxdiff;
+            best_h0 = h0;
+            best_J =J;
+        end
+        toc
     end
-    
+
+    J = best_J;
+    h0 = best_h0;
+
     % Plot deviation from experiment over time
     figure;
     subplot(2,1,1);
