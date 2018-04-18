@@ -6,6 +6,8 @@
 
 % Load spike trains
 spike_trains = load('spike_trains.mat');
+load('filtered_stimulus.mat');
+
 spike_trains = spike_trains.spike_array;
 % Remove first column (TNR intensity)
 spike_trains(:,:,1) = [];
@@ -25,6 +27,7 @@ num_neurons = 16;
 
 % Preallocate cell array with 7 columns of TNR intensities
 TNRsorted_trains = cell(1,7);
+TNRstimuli = cell(1,7);
 
 % For each TNR intensity...
 for i = 1:num_TNRs
@@ -32,15 +35,18 @@ for i = 1:num_TNRs
     ind = (TNR_index == i);
     % Store trials with TNR intensity i in cell column i
     TNRsorted_trains{1,i} = spike_trains(:,ind,:);
+    TNRstimuli{1,i} = filtered_stimulus(:,ind,:);
 end
 
 % Preallocate cell array with 16 rows of neurons and 7 columns of TNR intensities
 sorted_trains = cell(16,7);
+sorted_stimuli = cell(16,7);
 
 % For each TNR intensity...
 for i = 1:num_TNRs
     % Get TNR trials for that intensity
     TNRtrials = TNRsorted_trains{1,i};
+    TNRtrials_stimuli = TNRstimuli{1,i};
     % For each neuron...
     for j = 1:num_neurons
         % Get specific trials for that neuron
@@ -52,9 +58,19 @@ for i = 1:num_TNRs
         neurontrials = reshape(neurontrials, 1, []);
         % Save concatenated train in cell array
         sorted_trains{j,i} = neurontrials;
+        % Get specific trials for that neuron
+        stimulustrials = TNRtrials_stimuli(j,:,:);
+        s2 = size(stimulustrials,2);
+        s3 = size(stimulustrials,3);
+        stimulustrials = reshape(stimulustrials, [s2, s3]);
+        % Concatenate trains into 1 row vector
+        stimulustrials = reshape(stimulustrials, 1, []);
+        % Save concatenated train in cell array
+        sorted_stimuli{j,i} = stimulustrials;
     end
     % Print i
     i
 end
 
 save('sorted_trains.mat', 'sorted_trains');
+save('sorted_stimuli.mat', 'sorted_stimuli');
