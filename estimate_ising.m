@@ -42,7 +42,7 @@ function [h0 J train_logical] = estimate_ising_exact(iters)
         [sigm, states] = mh_sample_ising(1, sample_size, h0, J, 500);
         % end
         % [sigm, states] = gibbs_sample_ising(sample_size, h0, J, 100);
-        weighted_states = sigm.*transpose(states);
+        weighted_states = sigm.*repmat(transpose(states), 1, size(sigm, 2));
         toc
         
         tic;
