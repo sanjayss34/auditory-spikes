@@ -53,7 +53,8 @@ for i = 1:num_TNRs
         neurontrials = TNRtrials(j,:,:);
         s2 = size(neurontrials,2);
         s3 = size(neurontrials,3);
-        neurontrials = reshape(neurontrials, [s2, s3]);
+        neurontrials = permute(neurontrials, [1 3 2]);
+        % neurontrials = reshape(neurontrials, [s3, s2]);
         % Concatenate trains into 1 row vector
         neurontrials = reshape(neurontrials, 1, []);
         % Save concatenated train in cell array
@@ -62,7 +63,8 @@ for i = 1:num_TNRs
         stimulustrials = TNRtrials_stimuli(j,:,:);
         s2 = size(stimulustrials,2);
         s3 = size(stimulustrials,3);
-        stimulustrials = reshape(stimulustrials, [s2, s3]);
+        stimulustrials = permute(stimulustrials, [1 3 2]);
+        % stimulustrials = reshape(stimulustrials, [s3, s2]);
         % Concatenate trains into 1 row vector
         stimulustrials = reshape(stimulustrials, 1, []);
         % Save concatenated train in cell array
