@@ -42,15 +42,19 @@ for i = 1:num_neurons
 %     i
 end
 toc
-filtered_stimulus = filter_stimulus(binranges);
+
+amplitude = stimulus_binning(trial_length/bin_length);
+
+% filtered_stimulus = filter_stimulus(binranges);
 
 % Remove last column of spike train (unwanted bin)
 spike_array(:,:,end) = [];
-filtered_stimulus(:,:,end) =[];
+% filtered_stimulus(:,:,end) =[];
 
 % Save data
 save('spike_trains.mat', 'spike_array');
-save('filtered_stimulus.mat', 'filtered_stimulus');
+% save('filtered_stimulus.mat', 'filtered_stimulus');
+save('amplitude.mat', 'amplitude');
 
 % Check if any bin has more than 1 spike
 s = spike_array(:,:,2:end);
