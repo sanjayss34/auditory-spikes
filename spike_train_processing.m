@@ -2,7 +2,7 @@ function [] = spike_train_processing(trial_length, bin_length)
 % This function takes CohenNeurons.mat and pre-processes the data into an
 % m-by-k-by-n matrix with m matrices (1 for each neuron), k rows of trials 
 % and n = 2001 columns for (1) TNR and (2000) times in spike train.
-
+tic;
 % Default bin length is 1 ms
 if ~exist('bin_length', 'var')
     bin_length = 1;
@@ -39,9 +39,9 @@ for i = 1:num_neurons
         spike_array(i,j,1) = CohenNeurons(i).trials(j).TNR;
     end
     % Print i
-    i
+%     i
 end
-
+toc
 filtered_stimulus = filter_stimulus(binranges);
 
 % Remove last column of spike train (unwanted bin)
@@ -54,6 +54,12 @@ save('filtered_stimulus.mat', 'filtered_stimulus');
 
 % Check if any bin has more than 1 spike
 s = spike_array(:,:,2:end);
-max(max(max(s)))
+% max(max(max(s)))
+
+figure;
+plot(reshape(filtered_stimulus(1,1,:)*10^4, [1 100]))
+hold on
+spike_array = spike_array(:,:,2:end);
+plot(reshape(spike_array(1,1,:), [1 100]))
 
 end
