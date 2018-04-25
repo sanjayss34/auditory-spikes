@@ -8,6 +8,7 @@
 % Load sorted trains
 sorted_trains = load('sorted_trains.mat');
 sorted_trains = sorted_trains.sorted_trains;
+sorted_amplitudes = load('sorted_amplitudes.mat');
 
 num_neurons = 16;
 num_tnrs = 7;
@@ -28,5 +29,10 @@ for i = 1:num_neurons
     % Print i
     i
 end
+amplitude_trains = [];
+for j=1:num_tnrs
+    amplitude_trains = [amplitude_trains sorted_amplitudes(j)];
+end
 
 save('neuron_trains.mat', 'neuron_trains');
+save('amplitude_trains.mat', 'amplitude_trains');

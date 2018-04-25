@@ -1,4 +1,4 @@
-function [h0 J train_logical] = estimate_ising_exact(iters)
+function [h0 J train_logical] = estimate_ising(iters)
     load 'neuron_trains.mat' neuron_trains;
     neuron_trains = cell2mat(neuron_trains);
     [N T] = size(neuron_trains);
@@ -10,8 +10,17 @@ function [h0 J train_logical] = estimate_ising_exact(iters)
     test_logical = ~train_logical;
     neuron_trains_test = neuron_trains(:,test_logical);
     neuron_trains = neuron_trains(:,train_logical);
-    h0 = unifrnd(-1, 1, 1, N);
+    
+    mean_experiment = transpose(mean(neuron_trains,2));
+    mean_experiment_product = neuron_trains*transpose(neuron_trains)/size(neuron_trains,2);
+
+    % h0 = unifrnd(-1, 1, 1, N);
+    neuron_trains2 = (neuron_trains+1)/2;
+    % h0 = log(mean(neuron_trains2, 2)./(1-mean(neuron_trains2, 2)))*0.5;
+    h0 = transpose(atanh(mean_experiment));
+    h0 = transpose(h0);
     J = unifrnd(-0.1, 0.1, N, N);
+    % J = zeros(N, N);
     maxdiff = 1;
     eta = 0.1;
     alpha = 0;
@@ -24,8 +33,14 @@ function [h0 J train_logical] = estimate_ising_exact(iters)
     corr_diff = zeros(1,iters);
     
     % Gradient Ascent
-    mean_experiment = transpose(mean(neuron_trains,2));
-    mean_experiment_product = neuron_trains*transpose(neuron_trains)/size(neuron_trains,2);
+    sample_size = 10000;
+    sigm0 = zeros(sample_size, N);
+    for i=1:sample_size
+        sigm0(i,:) = 2*(randi(2, 1, N)-1)-1;
+    end
+    best_diff = 1;
+    best_h0 = h0;
+    best_J = J;
     while itercount < iters
         
         tic;
@@ -35,44 +50,54 @@ function [h0 J train_logical] = estimate_ising_exact(iters)
         maxdiff = 0;
         
         % Sample Ising Estimations
-        sample_size = 500;
-        %samples = sample_ising(sample_size, h0, J);
+        % [sigm, states] = sample_ising(sample_size, h0, J);
         % [sigm, states] = sample_ising_exact(h0, J);
-        % if mod(itercount, 20) == 1
-        [sigm, states] = mh_sample_ising(1, sample_size, h0, J, 500);
+        % [sigm, states] = sw_sample_ising(h0, J, sample_size, sigm0);
+        % if mod(itercount, 2) == 1
+        
+        [sigm, states] = mh_sample_ising(1, sample_size, h0, J, 10, sigm0);
+        sigm0 = sigm;
         % end
         % [sigm, states] = gibbs_sample_ising(sample_size, h0, J, 100);
         weighted_states = sigm.*repmat(transpose(states), 1, size(sigm, 2));
         toc
         
-        tic;
+        % tic;
         % Update h0 
         mean_sigma = sum(weighted_states);
         diff = eta*(mean_experiment-mean_sigma) + alpha*prev_change_h0;
         prev_change_h0 = diff;
         h0 = h0 + diff;
         sigma_diff(itercount) = mean(abs(mean_experiment-mean_sigma));
-        toc
+        % toc
         
-        tic;
+        % tic;
         % Update Jij
         mean_product = transpose(sigm)*weighted_states;
-        diff = eta*(mean_experiment_product-mean_product)+alpha*prev_change_J;
+        diff = 0.5*eta*(mean_experiment_product-mean_product)+alpha*prev_change_J;
         diff(logical(eye(size(diff)))) = 0;
         maxdiff = max(max(max(maxdiff, abs(diff))));
         prev_change_J = diff;
         J = J + diff;
         corr_diff(itercount) = sum(sum(abs(mean_experiment_product-mean_product)))/(N^2);
+        if maxdiff < best_diff
+            best_diff = maxdiff;
+            best_h0 = h0;
+            best_J =J;
+        end
         toc
     end
-    
+
+    J = best_J;
+    h0 = best_h0;
+
     % Plot deviation from experiment over time
     figure;
     subplot(2,1,1);
-    plot(1:itercount, sigma_diff);
+    plot(1:itercount, sigma_diff(1:itercount));
     title('Deviation of Mean Firing Rate');
     subplot(2,1,2);
-    plot(1:itercount, corr_diff);
+    plot(1:itercount, corr_diff(1:itercount));
     xlabel('# of Iterations');
     title('Deviation of Mean Correlation');
 
@@ -102,12 +127,12 @@ function [h0 J train_logical] = estimate_ising_exact(iters)
     xlabel('Mean Experimental Response');
     ylabel('Mean Predicted Response');
     lin = linspace(min(min(mers),min(mrs)),max(max(mers),max(mrs)),101);
-    plot(lin, lin, 'r')
+    plot(lin, lin, 'r');
     figure;
     scatter(meps, mps, 10, 'b', 'filled');
     hold on;
     xlabel('Mean Experimental Correlation');
     ylabel('Mean Predicted Correlation');
     lin = linspace(min(min(meps),min(mps)),max(max(meps),max(mps)),101);
-    plot(lin, lin, 'r')
+    plot(lin, lin, 'r');
 end
