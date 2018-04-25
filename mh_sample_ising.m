@@ -1,8 +1,7 @@
-function [sigm, states] = mh_sample_ising(beta, m, h0, J, iters)  
+function [sigm, states] = mh_sample_ising(beta, m, h0, J, iters, sigm0)  
     N = numel(h0);
-    sigm = zeros(1*m, N);
     for i = 1:(1*m)
-        sigm_i = 2*(randi(2, 1, N)-1)-1;
+        sigm_i = sigm0(i,:);
         % If sigma is not specified, assume all neurons are +1
         selected_neurons = randi([1 N], 1, iters);
         for t = 1:iters
