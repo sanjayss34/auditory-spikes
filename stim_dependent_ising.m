@@ -1,9 +1,27 @@
-function [h0 J] = estimate_ising_exact(iters)
+function [h0 J] = stim_dependent_ising(iters)
     load 'sorted_trains.mat' sorted_trains;
     load 'neuron_trains.mat' neuron_trains;
-    [N K] = size(sorted_trains);
+    load('amplitude_trains.mat');
+    % [N K] = size(sorted_trains);
     neuron_trains = cell2mat(neuron_trains);
-    h0 = unifrnd(-1, 1, K, N);
+    [N T] = size(neuron_trains);
+    K = 10;
+    binmarks = linspace(min(amplitude_trains), max(amplitude_trains), K+1);
+    counts = zeros(1, K);
+    mean_experiment = zeros(K, N);
+    for t=1:T
+        for j=1:K
+            if amplitude_trains(t) >= binmarks(j) && amplitude_trains(t) < binmarks(j+1)
+                counts(j) = counts(j)+1;
+                mean_experiment(j,:) = mean_experiment(j,:)+transpose(neuron_trains(:,t));
+            end
+        end
+    end
+    for j=1:K
+        mean_experiment(j,:) = mean_experiment(j,:)/counts(j);
+    end
+    mean_overall_experiment = mean(transpose(neuron_trains));
+    h0 = repmat(atanh(mean_overall_experiment), K, 1);
     J = unifrnd(-1, 1, N, N);
     maxdiff = 1;
     eta = 0.1;
@@ -11,25 +29,14 @@ function [h0 J] = estimate_ising_exact(iters)
     prev_change_h0 = zeros(K, N);
     prev_change_J = zeros(N, N);
     itercount = 0;
-    
-    tnr_weights = zeros(K, 1);
-    for k=1:K
-        tnr_weights(k) = numel(cell2mat(sorted_trains(1,k)));
-    end
-    tnr_weights = tnr_weights/sum(tnr_weights);
 
     % Measure deviations from experiment
     sigma_diff = zeros(1,iters);
     corr_diff = zeros(1,iters);
 
     % Gradient Ascent
-    mean_experiment = zeros(K, N);
-    for k=1:K
-        mean_experiment(k,:) = mean(cell2mat(sorted_trains(:,k)), 2);
-    end
     mean_experiment_product = neuron_trains*transpose(neuron_trains)/size(neuron_trains,2);
     while itercount < iters
-        
 
         % eta = eta/itercount;
         itercount = itercount+1;
@@ -51,11 +58,12 @@ function [h0 J] = estimate_ising_exact(iters)
             mean_sigma = sum(weighted_states);
             mean_sigma_all(k,:) = mean_sigma;
             diff = eta*(mean_experiment(k,:)-mean_sigma) + alpha*prev_change_h0(k,:);
+            maxdiff = max(max(abs(diff)), maxdiff);
             prev_change_h0(k,:) = diff;
             h0(k,:) = h0(k,:) + diff;
             sigma_diff(itercount) = mean(abs(mean_experiment(k,:)-mean_sigma));
             % toc
-            mean_product = mean_product+tnr_weights(k)*(transpose(sigm)*weighted_states);
+            mean_product = mean_product+counts(k)*(transpose(sigm)*weighted_states)/sum(counts);
         end
         
         tic;
@@ -86,7 +94,7 @@ function [h0 J] = estimate_ising_exact(iters)
     overall_mean_experiment = mean(neuron_trains, 2);
     overall_mean_model = zeros(N, 1);
     for k=1:K
-        overall_mean_model = overall_mean_model+mean_sigma_all(k,:)*tnr_weights(k);
+        overall_mean_model = overall_mean_model+mean_sigma_all(k,:)*counts(k)/sum(counts);
     end
     % Mean products
     num_entries = N*(N-1)/2;
