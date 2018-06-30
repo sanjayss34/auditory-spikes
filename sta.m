@@ -1,12 +1,12 @@
 function [D] = sta()
 load('CohenNeurons.mat');
 load('rawStimuli.mat');
+load('aud_stream.mat');
 trials_stimulus = rawStimCollector;
 N = 16;
-filterlength = 10000;
+spectro = spectrogram(rawStimCollector{1}, 128, 120, 128, Audstim.fs);
+filterlength = round(size(spectro, 2)/2);
 D = zeros(N, filterlength);
-load('aud_stream.mat');
-fs = Audstim.fs/1000;
 for n=1:N
     for i=1:numel(CohenNeurons(n).trials)
         contributions = zeros(1, size(D, 2));
@@ -15,17 +15,20 @@ for n=1:N
         spikes = round(spikes(spikes<2000));
         count_spikes = numel(spikes);
         stimulus = abs(trials_stimulus{i});
+        spectro = abs(spectrogram(stimulus, 128, 120, 128, Audstim.fs, 'yaxis'));
+        stimulus = sum(spectro, 1);
 %         index = round((1:2000)*fs);
 %         stimulus = stimulus(index);
 
         for t=1:numel(spikes)
-            time = round(spikes(t)*fs);
-            if time <= filterlength
-                stimulus_before_spike = stimulus(1:time-1);
-                contributions(1:time-1) = contributions(1:time-1) + fliplr(stimulus_before_spike);
+            % time = round(spikes(t)*Audstim.fs/1000);
+            index = round(spikes(t)*size(D, 2)/2000);
+            if index <= filterlength
+                stimulus_before_spike = stimulus(1:index-1);
+                contributions(1:index-1) = contributions(1:index-1) + fliplr(stimulus_before_spike);
             end
-            if time > filterlength
-                contributions = contributions + fliplr(stimulus(time-filterlength:time-1));
+            if index > filterlength
+                contributions = contributions + fliplr(stimulus(index-filterlength:index-1));
             end
         end
         if count_spikes > 0

@@ -6,33 +6,48 @@
 % times are from trials with TNR intensity 85 (which is the highest intensity).
 
 % Load sorted trains
-sorted_trains = load('sorted_trains.mat');
-sorted_trains = sorted_trains.sorted_trains;
-sorted_amplitudes = load('sorted_amplitudes.mat');
+% sorted_trains = load('sorted_trains.mat');
+% sorted_trains = sorted_trains.sorted_trains;
+% load('sorted_stimuli.mat');
+% 
+% num_neurons = 16;
+% num_tnrs = 7;
+% 
+% % Preallocate a 16-cell array with 1 train for each neuron
+% neuron_trains = cell(16,1);
+% feature_intensity = cell(16,1);
+% 
+% % For each neuron...
+% for i = 1:num_neurons
+%     % Create empty vector for concatenated train
+%     A = [];
+%     % For each TNR intensity...
+%     for j = 1:num_tnrs
+%         % Concatenate the train associated with that intensity
+%         A = [A sorted_trains{i,j}];
+%     end
+%     neuron_trains{i,1} = A;
+%     B = [];
+%     for j=1:num_tnrs
+%         B = [B sorted_stimuli{i,j}];
+%     end
+%     feature_intensity{i,1} = B;
+%     % Print i
+%     i
+% end
 
-num_neurons = 16;
-num_tnrs = 7;
+load('spike_trains.mat');
+load('filtered_stimulus.mat');
+spike_trains = spike_array;
+% Remove first column (TNR intensity)
+spike_trains(:,:,1) = [];
 
-% Preallocate a 16-cell array with 1 train for each neuron
-neuron_trains = cell(16,1);
-
-% For each neuron...
-for i = 1:num_neurons
-    % Create empty vector for concatenated train
-    A = [];
-    % For each TNR intensity...
-    for j = 1:num_tnrs
-        % Concatenate the train associated with that intensity
-        A = [A sorted_trains{i,j}];
-    end
-    neuron_trains{i,1} = A;
-    % Print i
-    i
-end
-amplitude_trains = [];
-for j=1:num_tnrs
-    amplitude_trains = [amplitude_trains sorted_amplitudes(j)];
-end
+% All bins with spikes become +1
+spike_trains(spike_trains > 0) = 1;
+% All bins with spikes become -1
+spike_trains(spike_trains == 0) = -1;
+neuron_trains = reshape(permute(spike_trains, [1 3 2]), size(spike_trains, 1), []);
+feature_intensity = reshape(permute(filtered_stimulus, [1 3 2]), size(filtered_stimulus, 1), []);
 
 save('neuron_trains.mat', 'neuron_trains');
-save('amplitude_trains.mat', 'amplitude_trains');
+save('feature_intensity.mat', 'feature_intensity');
